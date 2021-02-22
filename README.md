@@ -27,7 +27,7 @@ Usage example:
 
 |Optional:||
 ---|---
--f|Use to specify a suffix for the output gtf file (default is ‘_alt’)
+-s|Use to specify a suffix for the output gtf file (default is ‘_alt’)
 -h|print help
 
 **Output**: liftover gtf file 
