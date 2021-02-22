@@ -4,7 +4,7 @@ This repository contains source code for compiling the novel software needed in 
 
 Most code is in C and was produced and compiled on Linux (Ubuntu 16.04). It should also be possible to compile for Windows but this has not been tested. Further details regarding each tool and instructions for compilation and usage on Linux follow.
 
-More details and usage examples can be found in our paper (manuscript under review as of 18/12/2020)
+More details and usage examples can be found in our paper (manuscript under review as of 26/2/2021)
 
 ### alt_liftover
 This tool performs 'liftover' for gtf files which refer to a standard reference genome (e.g.  GRCh38), so that the output gtf file contains coordinates referencing an alternate genome (produced by GATK’s FastaAlternateReferenceMaker from the same reference genome and a variant vcf file).
