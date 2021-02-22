@@ -34,8 +34,6 @@ struct contig_info {
 	int mut_cnt;
 	int *deleted_pos;
 	int del_cnt;
-	char **deleted_transcript;
-	int del_transcript_cnt;
 	mut_info *mut;
 };
 struct gtf_metadata {
@@ -185,15 +183,8 @@ void main(int argc,char **argv)
 	for (i = 0; i<contig_cnt; ++i) {
 		if (contigs[i].deleted_pos != NULL)
 			free(contigs[i].deleted_pos);
-	//for (i = 0; i<contig_cnt; ++i)
 		if (contigs[i].mut != NULL)
 			free(contigs[i].mut);
-		for (j = 0; j < contigs[i].del_transcript_cnt; ++j) {
-			if (contigs[i].deleted_transcript[j] != NULL)
-				free(contigs[i].deleted_transcript[j]);
-		}
-		if (contigs[i].deleted_transcript != NULL)
-			free(contigs[i].deleted_transcript);
 	}
 	if (contigs != NULL)
 		free(contigs);
@@ -436,7 +427,6 @@ void add_deleted_transcript(char ***del, int old, char *transcript_id)
 	char **tmp = NULL;
 
         if (*del == NULL) {
-        //if (old == 0) {
                 if ((*del = calloc(1, sizeof(char *))) == NULL) {
                         printf("memory allocation error in add_deleted_transcript()\n");
                         exit(0);
@@ -512,7 +502,8 @@ void write_alt_gtf(FILE *f, gtf_info *gtf_lines, int gtf_cnt, contig_info contig
 	if has transcript_id, check if st -> en includes any mut.pos. If so, add mut.mutation to gtf_lines group 
 	Need to add the correct offset to each from contig.mut; find correct mut by eg. st > mut.pos[0] && st < mut.pos[+1]; add offset.
 	*/
-	int i = 0, j, k, l, flag = 0, index;
+	int i = 0, j, k, l, flag = 0, index, del_transcript_cnt = 0;
+	char **deleted_transcript = NULL;
 
 	for (i=0; i<gtf_cnt; ++i) {
 		parse_transcript_id(&gtf_lines[i]);
@@ -520,25 +511,25 @@ void write_alt_gtf(FILE *f, gtf_info *gtf_lines, int gtf_cnt, contig_info contig
 	for (j = 0; j < gtf_cnt; ++j) {
 		for (k = 0; k <contig.del_cnt; ++k) {
 			if (gtf_lines[j].transcript_id && (gtf_lines[j].st == contig.deleted_pos[k] || gtf_lines[j].en == contig.deleted_pos[k])) {
-				for (l = 0; l < contig.del_transcript_cnt; ++l) {
-					if (strcmp(contig.deleted_transcript[l], gtf_lines[j].transcript_id) == 0)
+				for (l = 0; l < del_transcript_cnt; ++l) {
+					if (strcmp(deleted_transcript[l], gtf_lines[j].transcript_id) == 0)
 					flag = 1; 
 				}	
 				if (!flag) {					
-					add_deleted_transcript(&(contig.deleted_transcript), contig.del_transcript_cnt, gtf_lines[j].transcript_id);
-					contig.del_transcript_cnt++;
+					add_deleted_transcript(&deleted_transcript, del_transcript_cnt, gtf_lines[j].transcript_id);
+					del_transcript_cnt++;
 				}
 				flag = 0; 
 			}
 		}
 	}
 	for (j = 0; j < gtf_cnt; ++j) 
-		for (k = 0; k < contig.del_transcript_cnt; ++k)
-			if (strcmp(gtf_lines[j].transcript_id, contig.deleted_transcript[k]) == 0) 	
+		for (k = 0; k < del_transcript_cnt; ++k)
+			if (strcmp(gtf_lines[j].transcript_id, deleted_transcript[k]) == 0) 	
 				gtf_lines[j].dont_print = 1;
 	printf("deleted transcripts for contig %s:\n",contig.id);
-	for (j=0; j<contig.del_transcript_cnt; ++j) {
-		printf("%d: %s\n",j,contig.deleted_transcript[j]);
+	for (j=0; j<del_transcript_cnt; ++j) {
+		printf("%d: %s\n",j,deleted_transcript[j]);
 	} 
 	for (j = 0; j < gtf_cnt; ++j) 
 		if (gtf_lines[j].dont_print)
@@ -582,6 +573,12 @@ void write_alt_gtf(FILE *f, gtf_info *gtf_lines, int gtf_cnt, contig_info contig
         	if (!gtf_lines[i].dont_print)
 		        fprintf(f, "%s\t%s\t%s\t%d\t%d\t%s\t%c\t%c\t%s\n", gtf_lines[i].seqname, gtf_lines[i].source, gtf_lines[i].feature, gtf_lines[i].st, gtf_lines[i].en, gtf_lines[i].score, gtf_lines[i].strand, gtf_lines[i].frame, gtf_lines[i].group);
 	}
+	for (j=0; j<del_transcript_cnt; ++j) {
+		if (deleted_transcript[j] != NULL)
+			free(deleted_transcript[j]);
+	}
+	if (deleted_transcript != NULL)
+		free(deleted_transcript);	
 	return;
 }
 /************************************************************************************************/
