@@ -35,6 +35,10 @@ typedef enum {
 	TRANSLATED,
 	NONCODING,
 } Region;
+ typedef enum{
+       	EMBL_ON,
+       	SIMPLE,
+} Mode_type;
 
 typedef struct tracking_info tracking_info;
 typedef struct genome_info genome_info;
@@ -203,6 +207,7 @@ void main(int argc,char **argv)
 	transcriptome_mutations *all_mutations = NULL;  
         vcf_info *vcf_lines = NULL;
 	tracking_info *tracking = NULL;
+	Mode_type mode = EMBL_ON;
 
 	pep_file[0] = '\0';
 	prot_file[0] = '\0';
@@ -210,7 +215,7 @@ void main(int argc,char **argv)
 	discard_fn[0] = '\0';
 	
 	printf("Running origins with following options:\n");
-	while ((c = getopt (argc, argv, "v:n:a:p:d:t:r:h")) != -1) {
+	while ((c = getopt (argc, argv, "v:n:a:p:d:t:r:sh")) != -1) {
                 switch (c) {
 			case 'r':
 				tracking_fn[0] = '\0';
@@ -293,6 +298,10 @@ void main(int argc,char **argv)
 				strcpy(norm_tr_file, optarg);
 				printf("-n\t'normal' transcriptome file (no mutations)%s\n", norm_tr_file);
 				break;
+			case 's':
+                               mode = SIMPLE;
+                               printf("-s\tsimple mode chosen\n\t\t(Ensembl will not be consulted for detailed origins of sequences.)\n");
+                               break;
 			case 'h':
                                 print_help();
                                 exit(0);
@@ -455,7 +464,9 @@ void main(int argc,char **argv)
 	if (tracking != NULL)
 		free(tracking);
 //Add mutation info
-	get_embl(&seqs, cnt, all_mutations, vcf_cnt+1);
+	if (mode == EMBL_ON) {
+               get_embl(&seqs, cnt, all_mutations, vcf_cnt+1);
+       	}
 
 	for (i = 0; i < vcf_cnt; ++i) {
 		for (j = 0; j < all_mutations[i].contig_cnt; ++j) {
@@ -595,6 +606,7 @@ void print_help() {
 	printf("Optional*:\n");
 	printf("\t-a\tcomma-separated list of ‘alternate’ transcriptomes\n\t\t(i.e. without variants added (nucleotide sequences in fasta format)\n");
 	printf("\t-v\tcomma-separated list of the vcf files used to produce the corresponding transcriptomes\n");
+	printf("\t-s\tchoose simple mode - no detailed info directly from Ensembl\n\t\tThis may be useful for a quick look at results or if the Ensembl REST API is malfunctioning)\n");
 	printf("\t-h\tprint help\n* -a and –v are optional, but if used the files should correspond;\n\t(e.g. –a transcriptome1.fa,transcriptome2.fa –v v1.vcf,v2.vcf)\n");
 	return;
 }
@@ -1354,10 +1366,17 @@ char *calculate_info(genome_info *peptide, embl_info ref)
 	tmp[0] = chunk[0] = '\0';
 //check strand == strand
 	if (peptide->strand != ref.strand) {
-		printf("Author's assumptions about Cufflinks class codes are wrong?\n");
-		printf("peptide %s, embl %s\n", peptide->transcript_id, ref.id);
+		printf("cuffcompare reference transcript strand does not match the Ensembl transcript strand: possible incompatibility with latest Ensembl version\n");
+		printf("cuffcompare tracking file %s, Ensembl reference %s\n", peptide->transcript_id, ref.id);
 		printf("pep strand %d, embl strand %d\n", peptide->strand, ref.strand);
-		exit(0);
+		strcpy(peptide->category, "error");
+		strcpy(tmp, "Cuffcompare reference transcript does not match Ensembl transcript info. Consider manual investigation");
+		if ((info = calloc((strlen(tmp) + 1), sizeof(char))) == NULL) {
+        		printf("memory allocation error in calculate_info()\n");
+        		exit(0);
+		}
+		strcpy(info, tmp);
+		return info;
 	}
 	
 //find whether peptide start and end is in translation chunk, utr chunk or outside ref transcript etc
