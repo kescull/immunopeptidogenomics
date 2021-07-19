@@ -50,7 +50,31 @@ Usage example:
 ---|---
 -d|use this to 'deprioritise deletions' i.e. remove from vcf any deletion mutations which would mask downstream mutation sites
 
-**Output**: curated vcf file named (input_name)_unmasked.vcf or (input_name)_indel.vcf, depending on whether or not the –d option is selected.
+**Output**: curated vcf file named (input_name)\_unmasked.vcf or (input_name)\_indel.vcf, depending on whether or not the –d option is selected.
+
+### filter_FPKM
+This tool filters transcripts based on RNA expression levels as indicated by the FPKM in the output gtf file from cuffcompare, or optionally by the more permissive FPKM-related metric 'conf_hi'. This allows the removal of reference transcripts for which there is no evidence in the RNA-seq data, facilitating generation of more sample-specific databases.
+
+Compilation example:
+```
+cc filter_FPKM.c -o filter_FPKM.o -lm
+```
+Usage example:
+```
+./filter_FPKM.o -g cuffcompare.combined.gtf -t cuffcompare_output.tracking [-f threshold_value -c -h] > filter.log
+```
+|Required Input:||
+---|---
+-g|Cuffcompare output combined.gtf file
+-t|Cuffcompare output tracking file 
+
+|Optional:||
+---|---
+-f|specify filter threshold (default 0.0)
+-c|change mode to filter based on conf_hi instead of FPKM metric
+-h|print help
+
+**Output**: filtered gtf file named (input_name)\_(mode).gtf; tabulated record of original file contents named (input_name)\_(mode)\_table.csv; also stats regarding input and output in stdout, which can be captured as a log file 
 
 ### msDot
 This tool judges the similarity in fragmentation pattern between pairs of spectra by calculating normalised dot products. It compares pairs of dta files following the naming convention convention x_mhc_peptide.dta and x_synth_peptide.dta, where x is an identifier such as the presumed peptide sequence. The program reads in the ions, cleans spectra to remove peaks with intensity below 0.01 * max intensity, and makes vectors with equal numbers of values in each array (i.e. same number of peaks), matching peaks within 0.1 Da between spectra. Then for vectors a and b,
@@ -91,7 +115,8 @@ Usage example:
 -d uniprot.fasta \
 -n no_variant_transcriptome.fa \
 [-a indel_transcriptome.fa,unmasked_transcriptome.fa\
- 	-v indel.vcf,unmasked.vcf]
+ 	-v indel.vcf,unmasked.vcf\
+  -s]
 ```
 |Required Input:||
 ---|---
@@ -104,6 +129,7 @@ Usage example:
 ---|---
 -a|comma-separated list of ‘alternate’ transcriptomes i.e. without variants added (nucleotide sequences in fasta format)
 -v|comma-separated list of the vcf files used to produce the corresponding transcriptomes
+-s|choose simple mode - no detailed info directly from Ensembl
 -h|print help
 
 Note: -a and –v are optional, but if used the files should correspond; e.g. `–a transcriptome1.fa,transcriptome2.fa –v v1.vcf,v2.vcf`
