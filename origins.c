@@ -322,12 +322,12 @@ void main(int argc,char **argv)
 		print_help();
 		exit(0);
 	}
+        if ((transcript_cnt=calloc(vcf_cnt + 1, sizeof(int)))==NULL) {
+               	printf("memory allocation error in main\n");
+                exit(0);
+        }
 	if (vcf_cnt > 0) {
                 if ((all_mutations=calloc(vcf_cnt, sizeof(transcriptome_mutations)))==NULL) {
-                     	printf("memory allocation error in main\n");
-                	exit(0);
-                }
-                if ((transcript_cnt=(int *)calloc(vcf_cnt + 1, sizeof(int)))==NULL) {
                      	printf("memory allocation error in main\n");
                 	exit(0);
                 }
@@ -355,13 +355,12 @@ void main(int argc,char **argv)
 			vcf_lines_cnt = 0;
 			fclose(f);
 		}
+/*		j=1;
+		for (i=0; i<all_mutations[j].contig_cnt; ++i) {
+       			for (k=0; k<all_mutations[j].contigs[i].mut_cnt; k++)
+        	        	printf("%d.%d) %s, %d, %d\n", i, k, all_mutations[j].contigs[i].mut[k].mutation, all_mutations[j].contigs[i].mut[k].pos, all_mutations[j].contigs[i].mut[k].offset);
+        	}*/
 	}
-	j=1;
-	for (i=0; i<all_mutations[j].contig_cnt; ++i) {
-       		for (k=0; k<all_mutations[j].contigs[i].mut_cnt; k++)
-        	        printf("%d.%d) %s, %d, %d\n", i, k, all_mutations[j].contigs[i].mut[k].mutation, all_mutations[j].contigs[i].mut[k].pos, all_mutations[j].contigs[i].mut[k].offset);
-        }
-
 	if ((f = fopen(pep_file,"r")) == NULL) {
                 printf("Can't open file %s\n",pep_file);
                 exit(0);
@@ -432,6 +431,8 @@ void main(int argc,char **argv)
 			printf("searching transcripts for matches with peptide sequences in %s...\n", norm_tr_file);
 			fflush(stdout);
 			transcript_cnt[i] = get_transcripts(e, &seqs, cnt, i, NULL);
+			printf("done - %d transcripts searched\n", transcript_cnt[i]);
+			fflush(stdout);
 		} else {
 			if ((e = fopen(alt_tr_files[i-1],"r")) == NULL) {
                 		printf("Can't open file %s\n",alt_tr_files[i-1]);
@@ -440,6 +441,8 @@ void main(int argc,char **argv)
 			printf("searching transcripts for matches with peptide sequences in %s...\n", alt_tr_files[i-1]);
 			fflush(stdout);
 			transcript_cnt[i] = get_transcripts(e, &seqs, cnt, i, &(all_mutations[i-1]));
+			printf("done - %d transcripts searched\n", transcript_cnt[i]);
+			fflush(stdout);
 		}
 		fclose(e);
 	}
@@ -503,13 +506,13 @@ void main(int argc,char **argv)
 	
 	for (i = 0; i < cnt; ++i) {
 		max = 0;
-		printf("%d)", i);
+		//printf("%d)", i);
 		for (j = 0; j < vcf_cnt + 1; ++j) {
-			printf("%d,", seqs[i].transcriptomes[j].transcript_cnt);
+		//	printf("%d,", seqs[i].transcriptomes[j].transcript_cnt);
 			if (seqs[i].transcriptomes[j].transcript_cnt > max)
 				max = seqs[i].transcriptomes[j].transcript_cnt;
 		}
-		printf("%d\n", max);
+		//printf("%d\n", max);
 		if (!max && !seqs[i].uniprot_cnt) { 
 			fprintf(discard_file, "%s\n",seqs[i].seq);
 		}
