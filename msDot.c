@@ -6,7 +6,7 @@
 #include <math.h>
 #define MAXSTR 10000
 #define TOLERANCE 0.1
-#define MAXIONS 2000
+#define MAXIONS 2500
 #define MININT 0.01
 #define PEAK 3
 #define MAYBE 1

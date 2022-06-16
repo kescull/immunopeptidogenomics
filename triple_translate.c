@@ -6,7 +6,7 @@
 #include <ctype.h>
 #define MAXSTR 51200
 #define FASTALEN 70
-#define MAXSEQLEN 250000
+#define MAXSEQLEN 350000
 #define MINLEN 8
 
 typedef enum {
@@ -428,9 +428,12 @@ seq_info parse_header(char *header)
 
 //get mutations
 	tmp.mut_cnt = 0;
-	if ((ptr = strstr(header, "mutations=")) != NULL) {
-		strcpy(chunk, ptr+10);
+	if ((ptr = strstr(header, ";mutations=")) != NULL) {
+		strcpy(chunk, ptr+11);
+		pnt = move_ptr(ptr, ';');
 		tmp.mut_cnt = parse_mutations(&tmp.muts, chunk);
+		if (pnt != NULL)
+			*pnt = ';';
 	}
 	chunk[0] = '\0';
 	chunk2[0] = '\0';
@@ -490,7 +493,7 @@ int parse_mutations(mut_info **muts, char *chunk)
 	char *pnt = NULL, *ptr = NULL, copy[strlen(chunk) + 1];
 
 	strcpy(copy, chunk);
-	while (*chunk != '\n') {
+	while (*chunk != '\n' && *chunk != ';') {
 		if (*chunk++ == '@')
 			cnt++;
 	}
@@ -608,7 +611,7 @@ void get_mut_loc(exon *exons, int exon_cnt, mut_info *muts, int mut_cnt, int str
 void format_translation(FILE *f, char **aa, seq_info info)
 {
 	int i, j, frame, pos = 0, tmp_pos = 0, seg_cnt = 0;
-	char header[MAXSTR], seq[MAXSEQLEN], *pnt = NULL, *ptr = NULL, cat_desc[MAXSTR], tmp[MAXSTR], gene[512];
+	char header[MAXSTR], seq[MAXSEQLEN], *pnt = NULL, *ptr = NULL, cat_desc[MAXSTR], tmp[MAXSTR], gene[520];
 
 //Need to: divvy up each frame seq into chunks between 'STOP', check for mutation, make new headers, print.
 	for (frame = 0; frame < 3; ++frame) {

@@ -11,7 +11,7 @@
 /*#include </path/to/cJSON.h>*/
 
 #define MAXSTR 51200
-#define MAXSEQLEN 250000
+#define MAXSEQLEN 350000
 #define MAXPROT 100000
 
 typedef enum {
