@@ -5,7 +5,7 @@ This repository contains source code for compiling the novel software needed in 
 Most code is in C and was produced and compiled on Linux (Ubuntu 16.04). It should also be possible to compile for Windows but this has not been tested. Further details regarding each tool and instructions for compilation and usage on Linux follow.
 
 More details and usage examples can be found in our paper, found [here](https://doi.org/10.1016/j.mcpro.2021.100143). Please **cite this paper** if you use any of these programs.  
-- Immunopeptidogenomics: Harnessing RNA-Seq to Illuminate the Dark Immunopeptidome, Scull, Katherine E. et al., Molecular & Cellular Proteomics, Volume 20, 100143
+- Immunopeptidogenomics: Harnessing RNA-Seq to Illuminate the Dark Immunopeptidome, Scull, Katherine E. et al., *Molecular & Cellular Proteomics*, Volume 20, 100143
 
 #### Update 6th October 2022
 Relevant programs in this repository have been adapted for compatability with an immunopeptidogenomics workflow which utilises Stringtie and gffcompare, rather than their outdated predecessors, Cufflinks and Cuffcompare. filter_FPKM has not been adapted, since the purpose of this program was to filter out reference transcripts for which there was no evidence in the RNA-seq data. Unlike Cufflinks, Stringtie does not include such transcripts in its assembly to start with. 
@@ -234,7 +234,7 @@ This tool helps compare ‘DB search psm.csv’ results from a PEAKS search on t
 
 Usage example:
 ```
-Rscript db_compare.R –c cryptic_psms.csv –d 15.0 –n normal_psms.csv –m 14.0 [-p output_prefix] [-j origins_discard.txt] [-
+Rscript db_compare.R –c cryptic_psms.csv –d 15.0 –n normal_psms.csv –m 14.0 [-p output_prefix] [-j origins_discard.txt] [-u origins_unconventional.txt]
 ```
 |Options:||
 ---|---
