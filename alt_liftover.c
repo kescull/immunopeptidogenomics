@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 #define MAXSTR 51200
+#define GROUP_MAX 512
 
 typedef struct vcf_info vcf_info;
 typedef struct contig_info contig_info;
@@ -49,7 +50,7 @@ struct gtf_info {
 	char score[10];
 	char strand;
 	char frame;
-	char group[5120];
+	char group[GROUP_MAX];
 	char transcript_id[100];
 	int dont_print;
 };
@@ -598,11 +599,18 @@ void write_norm_gtf(FILE *f, gtf_info *gtf_lines, int gtf_cnt)
 /************************************************************************************************/
 void alter_group(char *group, mut_info *mut, int cnt) 
 {
-	int i;
+	int i, len=0;
 
 	strcat(group, " mutations \"");
+	len = strlen(group);
 	for (i=0; i<cnt; ++i) {
 		if (mut[i].flag) {
+			len += strlen(mut[i].mutation);
+			if (len > GROUP_MAX-5) {
+				printf("Adding mutation info will make 'group' exceed GROUP_MAX - writing 'etc' instead\n");
+				strcat(group, "etc");
+				break;
+			}
 			strcat(group, mut[i].mutation);
 			strcat(group, ".");
 		}

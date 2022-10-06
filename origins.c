@@ -71,6 +71,7 @@ struct embl_info {
 	int id_num;
 	int version;
 	int error;
+	int start_exon_error;
 	char gene[100];
 	genome_chunk translation;
 	genome_chunk *utr5;
@@ -200,8 +201,8 @@ Also calculates liftover for alternate transcriptomes and whether sequences incl
 /**********************************************************************************************************/
 void main(int argc,char **argv)
 {
-	FILE *f, *g, *h, *e, *file_out_p, *file_out_t, *tracking_file, *discard_file;
-	char output1[100], output2[100], stem[100], **vcf_files = NULL, all[500], **alt_tr_files = NULL, pep_file[100], prot_file[100], norm_tr_file[100], c = '\0', *pnt = NULL, *ptr = NULL, *loc = NULL, tracking_fn[100], discard_fn[100];
+	FILE *f, *g, *h, *e, *file_out_p, *file_out_t, *tracking_file, *discard_file, *unco_file;
+	char output1[532], output2[532], stem[512], **vcf_files = NULL, all[500], **alt_tr_files = NULL, pep_file[512], prot_file[512], norm_tr_file[512], c = '\0', *pnt = NULL, *ptr = NULL, *loc = NULL, tracking_fn[512], discard_fn[532], unco_fn[532];
 	int i, j, k, m, cnt = 0, num = 0, *transcript_cnt = NULL, vcf_lines_cnt = 0, contig_cnt = 0, vcf_cnt = 0, alt_cnt = 0, max, tracking_cnt = 0;
 	seq_info *seqs = NULL;
 	transcriptome_mutations *all_mutations = NULL;  
@@ -375,10 +376,10 @@ void main(int argc,char **argv)
 		exit(0);
 	}
 	*pnt = '\0';
+	//get output files ready
 	sprintf(output1, "%s_origins_prot.csv", stem);
 	sprintf(output2, "%s_origins_rna.csv", stem);
 	sprintf(discard_fn, "%s_origins_discard.txt", stem);
-	
 	if ((file_out_p = fopen(output1,"w")) == NULL) {
                 printf("Can't open file %s\n",output1);
                 exit(0);
@@ -492,6 +493,25 @@ void main(int argc,char **argv)
 	}
 	fclose(file_out_p); //output prot
 
+	//in SIMPLE mode, print out unconventional peptide list
+	if (mode == SIMPLE) {
+		sprintf(unco_fn, "%s_origins_unconventional.txt", stem);
+		if ((unco_file = fopen(unco_fn,"w")) == NULL) {
+                	printf("Can't open file %s\n",unco_fn);
+                	exit(0);
+        	}
+		for (i = 0; i < cnt; ++i) {
+			max = 0;
+                	for (j = 0; j < vcf_cnt + 1; ++j) {
+                        	if (seqs[i].transcriptomes[j].transcript_cnt > max)
+                                max = seqs[i].transcriptomes[j].transcript_cnt;
+                	}
+			if (!seqs[i].uniprot_cnt && max)
+				fprintf(unco_file, "%s\n",seqs[i].seq);
+		}
+		fclose(unco_file);
+	}
+
 	fprintf(file_out_t, ",,,");
 	for (i = 0; i < vcf_cnt+1; i++)
 		fprintf(file_out_t, "%s,,,,,,,,,,,,", (i==0) ? norm_tr_file : alt_tr_files[i-1]);
@@ -506,13 +526,10 @@ void main(int argc,char **argv)
 	
 	for (i = 0; i < cnt; ++i) {
 		max = 0;
-		//printf("%d)", i);
 		for (j = 0; j < vcf_cnt + 1; ++j) {
-		//	printf("%d,", seqs[i].transcriptomes[j].transcript_cnt);
 			if (seqs[i].transcriptomes[j].transcript_cnt > max)
 				max = seqs[i].transcriptomes[j].transcript_cnt;
 		}
-		//printf("%d\n", max);
 		if (!max && !seqs[i].uniprot_cnt) { 
 			fprintf(discard_file, "%s\n",seqs[i].seq);
 		}
@@ -818,32 +835,34 @@ void get_canonical_frame_info(embl_info *embl)
 					start_exon = j;
 			}
 			if (start_exon < 0) {
-				printf("start_exon not found\n");
-				exit(0);
+				printf("start_exon not found - PLUS strand\n");
+				embl->start_exon_error = 1;
+			} else {
+				if (start_exon < (embl->exon_cnt - 1))
+					embl->exons[start_exon + 1].bases_from_start = embl->exons[start_exon].en + 1 - embl->translation.st;
+				for (j = start_exon + 2; j < embl->exon_cnt; j++) 
+					embl->exons[j].bases_from_start = embl->exons[j - 1].bases_from_start + embl->exons[j - 1].en + 1 - embl->exons[j - 1].st;
+				embl->exons[start_exon].bases_from_start = embl->exons[start_exon].st - embl->translation.st;
+				for (j = start_exon - 1; j > -1; j--) 
+					embl->exons[j].bases_from_start = embl->exons[j + 1].bases_from_start - (embl->exons[j].en + 1 - embl->exons[j].st);
 			}
-			if (start_exon < (embl->exon_cnt - 1))
-				embl->exons[start_exon + 1].bases_from_start = embl->exons[start_exon].en + 1 - embl->translation.st;
-			for (j = start_exon + 2; j < embl->exon_cnt; j++) 
-				  embl->exons[j].bases_from_start = embl->exons[j - 1].bases_from_start + embl->exons[j - 1].en + 1 - embl->exons[j - 1].st;
-			embl->exons[start_exon].bases_from_start = embl->exons[start_exon].st - embl->translation.st;
-			for (j = start_exon - 1; j > -1; j--) 
-				embl->exons[j].bases_from_start = embl->exons[j + 1].bases_from_start - (embl->exons[j].en + 1 - embl->exons[j].st);
 		} else if (embl->strand == MINUS) {
 			for (j = 0; j < embl->exon_cnt; j++) {
 				if ((embl->translation.en < embl->exons[j].en + 1) && embl->translation.en > embl->exons[j].st - 1)
 					start_exon = j;
 			}
 			if (start_exon < 0) {
-				printf("start_exon not found\n");
-				exit(0);
+				printf("start_exon not found - MINUS strand\n");
+				embl->start_exon_error = 1;
+			} else {
+				if (start_exon < (embl->exon_cnt - 1))
+					embl->exons[start_exon + 1].bases_from_start = embl->translation.en - embl->exons[start_exon].st + 1;
+				for (j = start_exon + 2; j < embl->exon_cnt; j++) 
+					embl->exons[j].bases_from_start = embl->exons[j-1].bases_from_start + (embl->exons[j-1].en - embl->exons[j-1].st + 1);	
+				embl->exons[start_exon].bases_from_start = embl->translation.en - embl->exons[start_exon].en;	
+				for (j = start_exon - 1; j > -1; j--) 
+					embl->exons[j].bases_from_start = embl->exons[j].st - embl->exons[j].en - 1 + embl->exons[j+1].bases_from_start;	
 			}
-			if (start_exon < (embl->exon_cnt - 1))
-				embl->exons[start_exon + 1].bases_from_start = embl->translation.en - embl->exons[start_exon].st + 1;
-			for (j = start_exon + 2; j < embl->exon_cnt; j++) 
-				embl->exons[j].bases_from_start = embl->exons[j-1].bases_from_start + (embl->exons[j-1].en - embl->exons[j-1].st + 1);	
-			embl->exons[start_exon].bases_from_start = embl->translation.en - embl->exons[start_exon].en;	
-			for (j = start_exon - 1; j > -1; j--) 
-				embl->exons[j].bases_from_start = embl->exons[j].st - embl->exons[j].en - 1 + embl->exons[j+1].bases_from_start;	
 		} else {
 			printf("Found 'translated' unknown strand in embl. Freak out!\n");
 			exit(0);
@@ -1127,6 +1146,14 @@ void get_embl(seq_info **seqs, int cnt, transcriptome_mutations *all_mutations, 
 						}
 	//fill in bases_from_start
 						get_canonical_frame_info(&embls[index]);
+						if (embls[index].start_exon_error) { 
+							printf("\tseq transcript id %s, transcriptome %d\n",(*seqs)[i].transcriptomes[j].transcripts[k].transcript_id, j);
+							printf("\tembls id %s, class_code %c\n", embls[index].id, (*seqs)[i].transcriptomes[j].transcripts[k].class_code);
+							printf("\ttrans st %d\n", embls[index].translation.st);
+							for (m = 0; m < embls[index].exon_cnt; ++m) {
+								printf("\texon %d) st %d en %d\n", m+1, embls[index].exons[m].st,  embls[index].exons[m].en);
+							}
+						}
 					}
 				}
 	//get metadata (for all seq, even if class_code == 'u')
@@ -1174,7 +1201,6 @@ void get_coords_string(char **string, embl_info embl, Strand strand)
 	else { //== MINUS
 		sprintf(tmp, "%d-%d", embl.exons[0].en, embl.exons[embl.exon_cnt-1].st);
 	}
-	
 	if ((ptr = calloc(strlen(tmp) + 1, sizeof(char))) == NULL) {
         	printf("memory allocation error in get_coords_string()\n");
         	exit(0);
@@ -1230,16 +1256,34 @@ void get_metadata(genome_info *transcript, embl_info embl)
 			sprintf(info, "intronic - derived from %s", transcript->ref_id);
 			strcpy(transcript->category, "intronic");
 			break;
+		case 'y':
+			if ((info = calloc(31 + strlen(transcript->ref_id), sizeof(char))) == NULL) {
+              			printf("memory allocation error in get_metadata()\n");
+        			exit(0);
+			}
+			sprintf(info, "contains %s within its intron(s)", transcript->ref_id);
+			strcpy(transcript->category, "wrap-around");
+			break;
 		case 'c':
 		case '=':
 		case 'j':
 		case 'e':
 		case 'o':
 		case 'r':
+		case 'k':
+		case 'm':
+		case 'n':
 			if (!embl.error) {
-				info = calculate_info(transcript, embl);
-			}
-			else {
+				if (embl.start_exon_error) {
+					if ((info = calloc(41, sizeof(char))) == NULL) {
+              					printf("memory allocation error in get_metadata()\n");
+        					exit(0);
+					}
+					strcpy(info, "ensembl translation start site not found");	
+				} else {
+					info = calculate_info(transcript, embl);
+				}
+			} else {
 				if ((info = calloc(23, sizeof(char))) == NULL) {
               				printf("memory allocation error in get_metadata()\n");
         				exit(0);
@@ -1249,7 +1293,11 @@ void get_metadata(genome_info *transcript, embl_info embl)
 			break;
 		default:
 			printf("Unknown class_code %c for transcript %s", transcript->class_code, transcript->transcript_id);
-			break;
+			exit(0);
+	}
+	if (strlen(info) > 511) {
+		printf("info too big to store in transcript metadata: %d\n", (int)strlen(info));
+		exit(0);
 	}
 	strcpy(transcript->metadata, info);
 	free(info);
@@ -1485,6 +1533,7 @@ char *calculate_info(genome_info *peptide, embl_info ref)
 		}	
 		
 	}
+	
 //find whether peptide start is in frame with ref transcript
 	if (ref.translation.embl_st) {
 		if ((frame = find_frame(peptide->start, ref)) < 0) {
