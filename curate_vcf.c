@@ -9,7 +9,7 @@
 typedef struct vcf_info vcf_info;
 
 struct vcf_info {
-        char chrom[20];
+        char chrom[100];
 	int pos;
 	char id[20];
 	char ref[512];
@@ -112,6 +112,7 @@ void main(int argc,char **argv)
 		free(header);
 	if (vcf_lines != NULL)
 		free(vcf_lines);
+	printf("Finished\n");
 	exit(0);
 }
 /***************************************************************************************************************************/
@@ -139,7 +140,7 @@ vcf_info *read_vcf(FILE *f, char ***header, int lines_cnt, int header_cnt)
 {
 	vcf_info *tmp = NULL, *big_var = NULL;
 	int i = 0, j = 0, var_len = 0;
-	char line[MAXSTR];	
+	char line[MAXSTR], chrom[150],id[25],ref[515],alt[515],qual[15],filter[515],info[5130];	
 
 	if ((*header=(char **)calloc(header_cnt, sizeof(char *)))==NULL) {
                 printf("memory allocation error in read_vcf\n");
@@ -160,7 +161,21 @@ vcf_info *read_vcf(FILE *f, char ***header, int lines_cnt, int header_cnt)
                         i++;
                 }
 		else if (j < lines_cnt) {
-			sscanf(line, "%[^\t] %d %[^\t] %[^\t] %[^\t] %s %s %s", tmp[j].chrom, &tmp[j].pos, tmp[j].id, tmp[j].ref, tmp[j].alt, tmp[j].qual, tmp[j].filter, tmp[j].info);
+			chrom[0] = id[0] = ref[0] = alt[0] = qual[0] = filter[0] = info[0] = '\0';
+			sscanf(line, "%[^\t] %d %[^\t] %[^\t] %[^\t] %s %s %s", chrom, &tmp[j].pos, id, ref, alt, qual, filter, info);
+			if (strlen(chrom) > 99 || strlen(id) > 19 || strlen(ref) > 511 || strlen(alt) > 511 || 
+					strlen(qual) > 9 || strlen(filter) > 511 || strlen(info) > 5119) {
+				printf("Content of one of the vcf fields is too big for the array specified in vcf_info structure. Please check your vcf, increase the size of the appropriate array and try again.\n");
+				exit(0);
+			}
+			strcpy(tmp[j].chrom,chrom);
+			strcpy(tmp[j].id,id);
+			strcpy(tmp[j].ref,ref);
+			strcpy(tmp[j].alt,alt);
+			strcpy(tmp[j].qual,qual);
+			strcpy(tmp[j].filter,filter);
+			strcpy(tmp[j].info,info);
+
 			if (strlen(tmp[j].ref) > var_len) {
 				var_len = strlen(tmp[j].ref);
 				big_var = &tmp[j];
@@ -176,7 +191,7 @@ vcf_info *read_vcf(FILE *f, char ***header, int lines_cnt, int header_cnt)
 			exit(0);
 		}
 	}
-	printf("biggest variant is:\n");
+	printf("biggest variant is %d:\n", var_len);
 	printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", big_var->chrom, big_var->pos, big_var->id, big_var->ref, big_var->alt, big_var->qual, big_var->filter, big_var->info);
 	
 	return tmp;
@@ -253,13 +268,14 @@ void remove_duplicates(vcf_info *v, int cnt)
 /***************************************************************************************************************************/
 void check_indels(vcf_info *v, int cnt, int deprioritise_del) 
 {
-	int i, j, offset = 0, flag = 0;
+	int i, j,del_cnt=0, removed_cnt = 0, offset = 0, flag = 0;
 
 	for (i = 0; i < cnt; ++i) {
 		if (!v[i].dont_print) {
 			offset = strlen(v[i].ref) - strlen(v[i].alt);
-			if (offset > 0) {
+			if (offset > 0) { //deletion mutation
 				j=1;
+				del_cnt++;
 				if (deprioritise_del) {
 					while ((strcmp(v[i].chrom, v[i+j].chrom) == 0) && (v[i+j].pos < (v[i].pos + offset + 1))) {
 						if (!v[i+j].dont_print) {
@@ -271,6 +287,7 @@ void check_indels(vcf_info *v, int cnt, int deprioritise_del)
 						v[i].dont_print = 1;
 						printf("This deletion mutation will not be in the curated .vcf because including it would remove downstream mutation sites:\n");
 						printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", v[i].chrom, v[i].pos, v[i].id, v[i].ref, v[i].alt, v[i].qual, v[i].filter, v[i].info);
+						removed_cnt++;
 					}
 					flag = 0;		
 				}
@@ -280,6 +297,7 @@ void check_indels(vcf_info *v, int cnt, int deprioritise_del)
 							v[i+j].dont_print = 1;
 							printf("This mutation will not be in the curated .vcf because a deletion of %d bases at chrom %s, pos %d has removed this position:\n", offset, v[i].chrom, v[i].pos);
 							printf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", v[i+j].chrom, v[i+j].pos, v[i+j].id, v[i+j].ref, v[i+j].alt, v[i+j].qual, v[i+j].filter, v[i+j].info);
+							removed_cnt++;
 						}	
 						j++;
 					}
@@ -287,6 +305,10 @@ void check_indels(vcf_info *v, int cnt, int deprioritise_del)
 			}
 		}
 	}
+	printf("Found %d deletions, resulting in %d lines removed\n", del_cnt, removed_cnt);
+	if (!removed_cnt)
+		printf("No lines were deleted - the output vcf is identical to the original\n");
+
 	return;
 }
 /***************************************************************************************************************************/
