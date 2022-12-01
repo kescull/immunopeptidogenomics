@@ -4,7 +4,15 @@ This repository contains source code for compiling the novel software needed in 
 
 Most code is in C and was produced and compiled on Linux (Ubuntu 16.04). It should also be possible to compile for Windows but this has not been tested. Further details regarding each tool and instructions for compilation and usage on Linux follow.
 
-More details and usage examples can be found in our paper (manuscript under review as of 26/2/2021)
+More details and usage examples can be found in our paper, found [here](https://doi.org/10.1016/j.mcpro.2021.100143). Please **cite this paper** if you use any of these programs.  
+- Immunopeptidogenomics: Harnessing RNA-Seq to Illuminate the Dark Immunopeptidome, Scull, Katherine E. et al., *Molecular & Cellular Proteomics*, Volume 20, 100143
+
+#### Update 6th October 2022
+Relevant programs in this repository have been adapted for compatability with an immunopeptidogenomics workflow which utilises Stringtie and gffcompare, rather than their outdated predecessors, Cufflinks and Cuffcompare. filter_FPKM has not been adapted, since the purpose of this program was to filter out reference transcripts for which there was no evidence in the RNA-seq data. Unlike Cufflinks, Stringtie does not include such transcripts in its assembly to start with. 
+
+db_compare has been given a significant overhaul to provide graphs and lists which were more useful to our current work. Importantly, it facilitates identification of 'unambiguous' results, i.e. it can point out spectra that were confidently identified as various different sequences, either within one search or when searching against the different databases. It provides graphs to show the extent of ambiguity, and lists of unambiguous results for further analysis. 
+
+The intention now is to use db_compare and origins in two phases. In Phase 1, db_compare is used without -u or -j options; this simply breaks results down into those found when searching with both databases or only one or the other. The 'cryptic-only' list is then provided as input to origins in simple mode, which provides 'unconventional' and 'discard' peptide lists. In Phase 2, db_compare is run again with the 'unconventional' and 'discard' lists as added input. origins is then used, without the -s option, for an in-depth analysis of the resulting 'unambiguous_unconventional' peptide list. 
 
 ### alt_liftover
 This tool performs 'liftover' for gtf files which refer to a standard reference genome (e.g.  GRCh38), so that the output gtf file contains coordinates referencing an alternate genome (produced by GATK’s FastaAlternateReferenceMaker from the same reference genome and a variant vcf file).
@@ -218,3 +226,25 @@ Rscript db_compare.R –c cryptic_psms.csv –d 15.0 –n normal_psms.csv –m 1
 -d NUMBER, --cryptic_threshold=NUMBER|threshold score for cryptic search results
 -m NUMBER, --norm_threshold=NUMBER|threshold score for normal (uniprot) search results
 -h, --help|Show this help message and exit
+
+### db_compare_v2.R
+This tool helps compare ‘DB search psm.csv’ results from a PEAKS search on the same data against two databases (labelled standard and cryptic), outputting various graphs and lists, including separation of ambiguous from unambiguous identifications.
+
+**Dependencies:** R packages VennDiagram, tidyverse, hrbrthemes, UpsetR, optparse
+
+Usage example:
+```
+Rscript db_compare.R –c cryptic_psms.csv –d 15.0 –n normal_psms.csv –m 14.0 [-p output_prefix] [-j origins_discard.txt] [-u origins_unconventional.txt]
+```
+|Options:||
+---|---
+-c CHARACTER, --cryptic=CHARACTER|cryptic PEAKS results filename
+-n CHARACTER, --normal=CHARACTER|normal (e.g. uniprot) PEAKS results filename
+-j CHARACTER, --junction=CHARACTER|Optional: artificial junction peptide list for discard (txt)
+-u CHARACTER, --unconventional=CHARACTER|Optional: list of unconventional peptides (txt)
+-p CHARACTER, --prefix=CHARACTER|prefix for all output files (e.g. myCellsRep1)
+-d NUMBER, --cryptic_threshold=NUMBER|threshold score for cryptic search results
+-m NUMBER, --norm_threshold=NUMBER|threshold score for normal (uniprot) search results
+-h, --help|Show this help message and exit
+
+Note: Options -j and -u must be used in conjunction
