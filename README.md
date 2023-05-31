@@ -4,6 +4,8 @@ This repository contains source code for compiling the novel software needed in 
 
 Most code is in C and was produced and compiled on Linux (Ubuntu 16.04). It should also be possible to compile for Windows but this has not been tested. Further details regarding each tool and instructions for compilation and usage on Linux follow.
 
+NOTE: These programs were developed and tested using reference genomes and gene annotation files sourced from [GENCODE](https://www.gencodegenes.org/) throughout the workflow. Assembling the transcriptome and calling variants using reference files from other sources (e.g. direct from Ensembl, NCBI) may result in output file formats which the programs here cannot read. 
+
 More details and usage examples can be found in our paper, found [here](https://doi.org/10.1016/j.mcpro.2021.100143). Please **cite this paper** if you use any of these programs.  
 - Immunopeptidogenomics: Harnessing RNA-Seq to Illuminate the Dark Immunopeptidome, Scull, Katherine E. et al., *Molecular & Cellular Proteomics*, Volume 20, 100143
 
