@@ -149,6 +149,7 @@ Note: -a and â€“v are optional, but if used the files should correspond; e.g. `â
 x_origins_rna.csv|file of peptide sequences with possible transcripts, and for each transcript, coordinates and metadata
 x_origins_prot.csv|file of only the input peptide sequences which might have a conventional source from the (-d) protein database, with protein details 
 x_origins_discard.txt|file of sequences found neither in the translated transcriptomes nor the protein database, hence artificial sequences to be discarded 
+x_origins_unconventional.txt|file of sequences found only in the translated transcriptome, hence unconventional sequences
 
 where x is the title of the peptide list input file
 
