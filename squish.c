@@ -1,7 +1,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <malloc.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
@@ -84,9 +83,9 @@ void main(int argc,char **argv)
 	entry *entries = NULL, *next_entries = NULL, artificial;
 	find_info find;
 	qfrag_node *hash_table;
-	int hash = 0, hash_num = (int)(pow(strlen(aa),QFRAG)), cnt = 0, next_cnt = 0, final_cnt = 0, ncqf_cnt = 0, i, j, k, index, *ncqf = NULL, last = -1, mod = 0, no_dup_cnt = 0, removed_cnt = 0, skip = 0, *skip_array = NULL, skip_array_cnt = 0, thread_num = 1, input_cnt = 0, no_dup2_cnt = 0, cat_cnt = 0;
+	int hash = 0, hash_num = (int)(pow(strlen(aa),QFRAG)), cnt = 0, next_cnt = 0, final_cnt = 0, ncqf_cnt = 0, i, j, k, index, *ncqf = NULL, last = -1, mod = 0, no_dup_cnt = 0, removed_cnt = 0, skip = 0, *skip_array = NULL, skip_array_cnt = 0, thread_num = 1, input_cnt = 0, no_dup2_cnt = 0, cat_cnt = 0, c;
 	long hash_len = 0, test_len = 0;	
-	char **input, **realloc_tmp, output[100], *pnt = NULL, c, tmp_header[MAXSTR], artificial_seq[MAXSTR], artificial_header[MAXSTR];
+	char **input, **realloc_tmp, output[100], *pnt = NULL, tmp_header[MAXSTR], artificial_seq[MAXSTR], artificial_header[MAXSTR];
 	pthread_t *threads = NULL;
 	param_info *params = NULL;
 
