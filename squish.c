@@ -194,7 +194,7 @@ void main(int argc,char **argv)
 
         	printf("%d entries in %s\n", next_cnt, input[i]);
 		make_headers_unique(&next_entries, next_cnt, i+1);
-		qsort(next_entries, next_cnt, sizeof(entry), sort_alpha);
+        qsort(next_entries, next_cnt, sizeof(entry), sort_alpha);
         	qsort(next_entries, next_cnt, sizeof(entry), sort_by_len);
       
 	  	remove_duplicates(&next_entries, &next_cnt);
@@ -364,7 +364,7 @@ void make_headers_unique(entry **entries, int cnt, int file_num)
 	sprintf(append, "_%d", file_num);
 	for (i = 0; i < cnt; ++i) {
 		ptr_from = (*entries)[i].header;
-        	if ((tmp = calloc(strlen((*entries)[i].header) + 3,sizeof(char))) == NULL) {
+        	if ((tmp = calloc(strlen((*entries)[i].header) + 10,sizeof(char))) == NULL) {
         	        printf("Memory allocation error in make_headers_unique()\n");
         	        exit(0);
         	}
